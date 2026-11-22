@@ -1,85 +1,92 @@
-var filterForm = document.getElementById('filters');
-var carsGrid = document.getElementById('grid');
-var noResultsMessage = document.getElementById('noResults');
-var allCarCards = carsGrid.querySelectorAll('.card');
+(function () {
+    'use strict';
 
+    var filterForm = document.getElementById('filters');
+    var carsGrid = document.getElementById('grid');
+    var noResultsMessage = document.getElementById('noResults');
+    var resultsCount = document.getElementById('resultsCount');
+    var btnReset = document.getElementById('btnResetFilters');
+    var btnClear = document.getElementById('btnClearFilters');
 
-function animateCard(card, delay) {
-    card.style.opacity = '0';
+    if (!filterForm || !carsGrid) return;
 
-    setTimeout(function () {
-        card.style.opacity = '1';
-    }, delay);
-}
+    var allCarCards = Array.from(carsGrid.querySelectorAll('.luxury-car-card'));
 
+    function applyFilters() {
+        var searchTerm = (filterForm.search ? filterForm.search.value : '').trim().toLowerCase();
+        var chosenCategory = filterForm.category ? filterForm.category.value.toLowerCase() : '';
+        var chosenEngine = filterForm.engine ? filterForm.engine.value.toLowerCase() : '';
+        var maxPrice = filterForm.max ? Number(filterForm.max.value) : 0;
+        var chosenSort = filterForm.sort ? filterForm.sort.value : 'price_asc';
 
-function applyFilters(shouldAnimate) {
-    var chosenCategory = filterForm.category.value;
-    var chosenEngine = filterForm.engine.value;
-    var maxPrice = Number(filterForm.max.value);
-    var chosenSort = filterForm.sort.value;
+        var visibleCards = [];
 
-    var visibleCards = [];
+        allCarCards.forEach(function (card) {
+            var cardName = (card.dataset.name || '').toLowerCase();
+            var cardCategory = (card.dataset.category || '').toLowerCase();
+            var cardEngine = (card.dataset.engine || '').toLowerCase();
+            var cardPrice = Number(card.dataset.price) || 0;
 
-    for (var i = 0; i < allCarCards.length; i++) {
-        var card = allCarCards[i];
-        var shouldShow = true;
+            var matchesSearch = searchTerm === '' || cardName.indexOf(searchTerm) !== -1;
+            var matchesCategory = chosenCategory === '' || cardCategory === chosenCategory;
+            var matchesEngine = chosenEngine === '' || cardEngine === chosenEngine;
+            var matchesPrice = maxPrice <= 0 || cardPrice <= maxPrice;
 
-        if (chosenCategory != '' && card.dataset.category != chosenCategory) {
-            shouldShow = false;
+            if (matchesSearch && matchesCategory && matchesEngine && matchesPrice) {
+                card.style.display = '';
+                visibleCards.push(card);
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Sorting
+        visibleCards.sort(function (a, b) {
+            var priceA = Number(a.dataset.price) || 0;
+            var priceB = Number(b.dataset.price) || 0;
+            var hpA = Number(a.dataset.hp) || 0;
+            var hpB = Number(b.dataset.hp) || 0;
+            var yearA = Number(a.dataset.year) || 0;
+            var yearB = Number(b.dataset.year) || 0;
+
+            if (chosenSort === 'price_desc') return priceB - priceA;
+            if (chosenSort === 'hp_desc') return hpB - hpA;
+            if (chosenSort === 'newest') return yearB - yearA;
+            return priceA - priceB;
+        });
+
+        // Re-append in sorted order
+        visibleCards.forEach(function (card) {
+            carsGrid.appendChild(card);
+        });
+
+        // Update count & empty state
+        if (resultsCount) {
+            resultsCount.textContent = 'Showing ' + visibleCards.length + ' of ' + allCarCards.length + ' models';
         }
 
-        if (chosenEngine != '' && card.dataset.engine != chosenEngine) {
-            shouldShow = false;
-        }
-
-        if (maxPrice > 0 && Number(card.dataset.price) > maxPrice) {
-            shouldShow = false;
-        }
-
-        if (shouldShow) {
-            card.style.display = '';
-            visibleCards.push(card);
+        if (visibleCards.length === 0) {
+            if (noResultsMessage) noResultsMessage.style.display = 'block';
         } else {
-            card.style.display = 'none';
+            if (noResultsMessage) noResultsMessage.style.display = 'none';
         }
     }
 
-    visibleCards.sort(function (firstCard, secondCard) {
-        if (chosenSort == 'price_desc') {
-            return secondCard.dataset.price - firstCard.dataset.price;
-        }
+    function resetFilters() {
+        filterForm.reset();
+        applyFilters();
+    }
 
-        if (chosenSort == 'newest') {
-            return secondCard.dataset.year - firstCard.dataset.year;
-        }
-
-        return firstCard.dataset.price - secondCard.dataset.price;
+    filterForm.addEventListener('input', applyFilters);
+    filterForm.addEventListener('change', applyFilters);
+    filterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        applyFilters();
     });
 
-    for (var j = 0; j < visibleCards.length; j++) {
-        carsGrid.appendChild(visibleCards[j]);
+    if (btnReset) btnReset.addEventListener('click', resetFilters);
+    if (btnClear) btnClear.addEventListener('click', resetFilters);
 
-        if (shouldAnimate) {
-            animateCard(visibleCards[j], 50 + j * 100);
-        }
-    }
-
-    if (visibleCards.length == 0) {
-        noResultsMessage.style.display = 'block';
-    } else {
-        noResultsMessage.style.display = 'none';
-    }
-}
-
-
-filterForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    applyFilters(true);
-});
-
-filterForm.addEventListener('input', function () {
-    applyFilters(true);
-});
-
-applyFilters(false);
+    // Initial run
+    applyFilters();
+})();

@@ -1,9 +1,11 @@
 <?php
-session_start();
-require 'things/admin-guard.php';
-require_once 'things/vehicles-data.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/things/admin-guard.php';
+require_once __DIR__ . '/things/vehicles-data.php';
 
-$pageTitle = 'Admin - Car';
+$pageTitle = 'Admin - Edit Vehicle';
 $message = '';
 $engineOptions = ['petrol', 'electric', 'hybrid'];
 
@@ -21,7 +23,6 @@ $year = date('Y');
 
 if (isset($_GET['id'])) {
     $editId = (int) $_GET['id'];
-
     if (isset($allCars[$editId])) {
         $oldCar = $allCars[$editId];
         $carId = $oldCar['id'];
@@ -80,62 +81,93 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-require 'things/header.php';
+require_once __DIR__ . '/things/header.php';
 ?>
 
-<section class="wrap">
-    <h1>Car details</h1>
+<section class="wrap admin-page">
+    <div class="admin-header-row">
+        <div>
+            <span class="label-tiny">VEHICLE CATALOG EDITOR</span>
+            <h1><?= $carId === 0 ? 'Add New Porsche Model' : 'Edit ' . safe($name) ?></h1>
+            <p class="section-sub">Define performance metrics, powertrain specifications, and starting base price.</p>
+        </div>
+        <a class="btn-ghost-luxury" href="admin-cars.php"><i class="fa-solid fa-arrow-left"></i> Back to Fleet</a>
+    </div>
 
-    <?php if ($message != '') { ?>
-        <p class="notice"><?= $message ?></p>
-    <?php } ?>
+    <?php if ($message != ''): ?>
+        <div class="notice"><?= safe($message) ?></div>
+    <?php endif; ?>
 
-    <form method="post" class="stack">
-        <input type="hidden" name="car_id" value="<?= $carId ?>">
+    <div class="luxury-auth-card" style="max-width: 680px; margin: 0 auto;">
+        <form method="post" class="auth-form stack">
+            <input type="hidden" name="car_id" value="<?= $carId ?>">
 
-        <label>Name</label>
-        <input name="name" value="<?= safe($name) ?>" required>
+            <div class="modal-form-grid">
+                <div class="form-group full-width">
+                    <label>Vehicle Model Name *</label>
+                    <input name="name" class="form-input" value="<?= safe($name) ?>" placeholder="e.g. Porsche 911 GT3 RS" required>
+                </div>
 
-        <label>Slug (also the images folder name, example: 911-gt3)</label>
-        <input name="slug" value="<?= safe($slug) ?>" required>
+                <div class="form-group">
+                    <label>Slug (Image Directory Key) *</label>
+                    <input name="slug" class="form-input" value="<?= safe($slug) ?>" placeholder="e.g. 911-gt3-rs" required>
+                </div>
 
-        <label>Description</label>
-        <input name="description" value="<?= safe($description) ?>" required>
+                <div class="form-group">
+                    <label>Model Year *</label>
+                    <input type="number" name="year" class="form-input" value="<?= safe($year) ?>" required>
+                </div>
 
-        <label>Category</label>
-        <select name="category" data-selected="<?= safe($category) ?>">
-            <?php foreach ($allCategories as $categoryName) { ?>
-                <option><?= safe($categoryName) ?></option>
-            <?php } ?>
-        </select>
+                <div class="form-group full-width">
+                    <label>Marketing Description *</label>
+                    <input name="description" class="form-input" value="<?= safe($description) ?>" placeholder="Brief tagline or description" required>
+                </div>
 
-        <label>Engine</label>
-        <select name="engine" data-selected="<?= safe($engine) ?>">
-            <?php foreach ($engineOptions as $engineName) { ?>
-                <option><?= $engineName ?></option>
-            <?php } ?>
-        </select>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-input">
+                        <?php foreach ($allCategories as $categoryName): ?>
+                            <option value="<?= safe($categoryName) ?>" <?= $category === $categoryName ? 'selected' : '' ?>><?= safe(ucfirst($categoryName)) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-        <label>Horsepower</label>
-        <input type="number" name="horsepower" value="<?= safe($horsepower) ?>" required>
+                <div class="form-group">
+                    <label>Powertrain / Engine</label>
+                    <select name="engine" class="form-input">
+                        <?php foreach ($engineOptions as $engineName): ?>
+                            <option value="<?= $engineName ?>" <?= $engine === $engineName ? 'selected' : '' ?>><?= ucfirst($engineName) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-        <label>0-100 km/h (seconds)</label>
-        <input type="number" step="0.1" name="acceleration" value="<?= safe($acceleration) ?>" required>
+                <div class="form-group">
+                    <label>Max Horsepower (HP) *</label>
+                    <input type="number" name="horsepower" class="form-input" value="<?= safe($horsepower) ?>" required>
+                </div>
 
-        <label>Top speed (km/h)</label>
-        <input type="number" name="top_speed" value="<?= safe($topSpeed) ?>" required>
+                <div class="form-group">
+                    <label>0-100 km/h (Seconds) *</label>
+                    <input type="number" step="0.1" name="acceleration" class="form-input" value="<?= safe($acceleration) ?>" required>
+                </div>
 
-        <label>Base price ($)</label>
-        <input type="number" name="price" value="<?= safe($price) ?>" required>
+                <div class="form-group">
+                    <label>Top Speed (km/h) *</label>
+                    <input type="number" name="top_speed" class="form-input" value="<?= safe($topSpeed) ?>" required>
+                </div>
 
-        <label>Year</label>
-        <input type="number" name="year" value="<?= safe($year) ?>" required>
+                <div class="form-group">
+                    <label>Starting Base Price ($) *</label>
+                    <input type="number" name="price" class="form-input" value="<?= safe($price) ?>" required>
+                </div>
+            </div>
 
-        <button class="btn">Save</button>
-        <a class="btn ghost" href="admin-cars.php">Cancel</a>
-    </form>
+            <div style="display:flex; gap:1rem; margin-top:1rem;">
+                <button type="submit" class="btn-porsche-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Save Vehicle Specification</button>
+                <a class="btn-ghost-luxury" href="admin-cars.php">Cancel</a>
+            </div>
+        </form>
+    </div>
 </section>
 
-<script src="assets/js/forms.js"></script>
-
-<?php require 'things/footer.php'; ?>
+<?php require_once __DIR__ . '/things/footer.php'; ?>

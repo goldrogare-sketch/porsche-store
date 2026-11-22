@@ -1,8 +1,10 @@
 <?php
-session_start();
-require 'things/admin-guard.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/things/admin-guard.php';
 
-$pageTitle = 'Admin - Cars';
+$pageTitle = 'Admin - Manage Fleet';
 $message = '';
 
 if (isset($_POST['delete_car'])) {
@@ -13,47 +15,78 @@ if (isset($_POST['delete_car'])) {
     $reservationCount = $query->fetchColumn();
 
     if ($reservationCount > 0) {
-        $message = 'This car has reservations and cannot be deleted.';
+        $message = 'This car has active customer reservations and cannot be deleted.';
     } else {
         $query = $database->prepare('DELETE FROM vehicles WHERE id = ?');
         $query->execute([$carId]);
-        $message = 'Car deleted.';
+        $message = 'Car removed from inventory.';
     }
 }
 
-require 'things/header.php';
+require_once __DIR__ . '/things/header.php';
 ?>
 
-<section class="wrap">
-    <h1>Manage cars</h1>
+<section class="wrap admin-page">
+    <div class="admin-header-row">
+        <div>
+            <span class="label-tiny">INVENTORY MANAGEMENT</span>
+            <h1>Manage Vehicle Fleet</h1>
+            <p class="section-sub">Add new models, configure powertrain specifications, or adjust base pricing.</p>
+        </div>
+        <div class="admin-actions-bar">
+            <a class="btn-porsche-primary" href="admin-car-form.php"><i class="fa-solid fa-plus"></i> Add New Car</a>
+            <a class="btn-ghost-luxury" href="admin.php"><i class="fa-solid fa-arrow-left"></i> Admin Hub</a>
+        </div>
+    </div>
 
-    <?php if ($message != '') { ?>
-        <p class="notice"><?= $message ?></p>
-    <?php } ?>
+    <?php if ($message != ''): ?>
+        <div class="notice"><?= safe($message) ?></div>
+    <?php endif; ?>
 
-    <p>
-        <a class="btn" href="admin-car-form.php">Add new car</a>
-        <a class="btn ghost" href="admin.php">Back</a>
-    </p>
-
-    <table>
-        <?php foreach ($allCars as $car) { ?>
-            <tr>
-                <td><?= safe($car['name']) ?></td>
-                <td><?= safe($car['category']) ?></td>
-                <td>$<?= number_format($car['base_price']) ?></td>
-                <td><a class="btn ghost" href="admin-car-form.php?id=<?= $car['id'] ?>">Edit</a></td>
-                <td>
-                    <form method="post">
-                        <button class="btn ghost confirm-delete" name="delete_car"
-                            value="<?= $car['id'] ?>">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        <?php } ?>
-    </table>
+    <div class="admin-table-container">
+        <table class="luxury-admin-table">
+            <thead>
+                <tr>
+                    <th>Model Name &amp; Slug</th>
+                    <th>Category</th>
+                    <th>Engine</th>
+                    <th>Performance</th>
+                    <th>Base Price</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($allCars as $car): ?>
+                    <tr>
+                        <td>
+                            <strong style="color:#fff; font-size:1.1rem;"><?= safe($car['name']) ?></strong><br>
+                            <small class="text-muted">Slug: <?= safe($car['slug']) ?> &bull; Year <?= $car['year'] ?></small>
+                        </td>
+                        <td><span class="card-badge badge-category"><?= safe(ucfirst($car['category'])) ?></span></td>
+                        <td><span class="card-badge badge-engine"><?= safe(ucfirst($car['engine'])) ?></span></td>
+                        <td>
+                            <span><?= $car['hp'] ?> HP &bull; 0-100: <?= $car['accel'] ?>s &bull; <?= $car['top_speed'] ?> km/h</span>
+                        </td>
+                        <td>
+                            <strong class="price-highlight">$<?= number_format($car['base_price']) ?></strong>
+                        </td>
+                        <td>
+                            <div style="display:flex; gap:0.5rem;">
+                                <a class="btn-table-sm" href="admin-car-form.php?id=<?= $car['id'] ?>" title="Edit Model">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this vehicle model permanently?');">
+                                    <button class="btn-table-danger" name="delete_car" value="<?= $car['id'] ?>" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </section>
 
-<script src="assets/js/forms.js"></script>
-
-<?php require 'things/footer.php'; ?>
+<?php require_once __DIR__ . '/things/footer.php'; ?>
